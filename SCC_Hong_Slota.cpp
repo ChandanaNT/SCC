@@ -7,7 +7,7 @@
 #include <fstream>
 #include <set>
 #include <list> 
-
+#include <stdlib.h>
 
 using namespace std;
 
@@ -30,7 +30,7 @@ class Graph
 
 public:
 	Graph(int V, int E, char* filename);  // Constructor
-	~Graph()
+	~Graph()    //Destructor
 	{
 		free(edges);
 		free(nodes);
@@ -88,7 +88,7 @@ void Graph::buildCSRGraph(char filename[])
 	
 	int prev = -1;
 	int count_edges = 0;
-	//edges[371620] = 0;
+
 	while (infile >> s >> d)
 	{
 		count_edges++;
@@ -101,6 +101,7 @@ void Graph::buildCSRGraph(char filename[])
 		count++;
 		prev = s;
 	}
+	
 	//file.close();
 	int i;
 	/*for (i = 0; i<V; i++)
@@ -385,23 +386,6 @@ void Graph::SCC()
 	WCC();
 	//printInfo();
 }
-
-/*
-int main()
-{
-//Data Filename
-char filename[] = "sortedRoadNetwork.txt";
-//Number of vertices
-int V = 1379917;
-//Number of Edges
-int E = 1921660;
-Graph g(V, E, filename);
-g.SCC();
-return 0;
-}
-*/
-
-
 
 
 int main(int argc, char* argv[])

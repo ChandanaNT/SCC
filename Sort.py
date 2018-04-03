@@ -1,4 +1,4 @@
-with open('./PP_Project/DataSets/LiveJournal.txt') as f:
+with open('./roadNetwork.txt') as f:
     lines = f.readlines()
 
 #Check number of edges
@@ -9,17 +9,16 @@ edge_list = []
 for edge in lines:
     #Remove '/n' at the end of every line
     edge = edge[0:len(edge)-1]
-    nodes = edge.split('\t')
-    #print(nodes)
+    nodes = edge.split()
+    if(len(nodes) == 1):
+        break
     frome = nodes[0]
     toe = nodes[1]
     edge_list.append([frome,toe])
     
-
-#print(edge_list)
-edge_list.sort(key=lambda x: x[0])
+edge_list.sort(key=lambda x: int(x[0]))
 #print(edge_list)
 
-thefile = open('sortedLiveJournal.txt', 'w')
+thefile = open('sortedOnFromRoadNetwork.txt', 'w')
 for item in edge_list:
-  thefile.write("%s %s\n" % (item[0],item[1]))
+ thefile.write("%s %s\n" % (item[0],item[1]))

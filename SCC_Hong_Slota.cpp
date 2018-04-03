@@ -2,7 +2,7 @@
 //
 
 //#include "stdafx.h"
-#include<iostream>
+#include <iostream>
 #include <list>
 #include <fstream>
 #include <set>
@@ -75,7 +75,7 @@ void Graph::buildCSRGraph(char filename[])
 	printf("Building CSR...\n");
 	int count = 0;
 	unsigned int s, d;
-	std::ifstream infile("./sortedRoadNetwork.txt");
+	std::ifstream infile(filename);
 	/*ifstream file;
 	file.open(filename);
 	if (!file.is_open())
@@ -407,11 +407,11 @@ return 0;
 int main(int argc, char* argv[])
 {
 	//Data Filename
-	char filename[] = "./sortedRoadNetwork.txt";
+	char filename[] = "./sortedOnFromRoadNetwork.txt";
 	//Number of vertices
-	int V = 1000000;//8;
+	int V = 1393383; //8;
 	//Number of Edges
-	int E = 3843320; //9; // 
+	int E = 3843320; //9; 
 	Graph g(V, E, filename);
 	g.SCC();
 	return 0;

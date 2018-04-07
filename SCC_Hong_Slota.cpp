@@ -51,6 +51,7 @@ public:
 	void buildColourMap();
 	void printColourMap();
 	void printInfo();
+	void findBiggestSCC();
 
 	int choosePivot(int, int*);
 	int checkIndegree(int);
@@ -681,6 +682,20 @@ void Graph::printColourMap()
 	}
 }
 
+void Graph::findBiggestSCC()
+{
+	int max_size = -1, size;
+	map <int, std::vector<int> > ::iterator itr;
+	vector<int>::iterator jtr;
+	for (itr = colourMap.begin(); itr != colourMap.end(); ++itr)
+	{
+		size = itr->second.size();
+		if(max_size < size)
+		   max_size = size;		
+	}
+	printf("\nSize of the biggest SCC is %d \n\n", max_size);
+}
+
 void Graph::SCC()
 {
 	Trim1();
@@ -695,6 +710,7 @@ void Graph::SCC()
 	repeated_FWBW();
 	buildColourMap();
 	printColourMap();
+	findBiggestSCC();
 	//printInfo();
 }
 
@@ -704,9 +720,9 @@ int main(int argc, char* argv[])
 	//Data Filename
 	char filename[] = "./wiki-Vote_Sorted.txt";
 	//Number of vertices
-	int V = 73; //15;
+	int V = 8297; //15;  //73; 
 	//Number of Edges
-	int E = 100; //28; 
+	int E = 103689; //28;  //100; 
 	Graph g(V, E, filename);
 	g.SCC();
 	return 0;

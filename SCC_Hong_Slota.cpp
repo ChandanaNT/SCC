@@ -1,7 +1,5 @@
 // SCC_Hong_Slota.cpp : Defines the entry point for the console application.
-//
 
-//#include "stdafx.h"
 #include <iostream>
 #include <list>
 #include <fstream>
@@ -35,7 +33,6 @@ class Graph
 
 	queue<int> work_queue;
 	map <int, std::vector<int> > colourMap;
-	//hashmap<> colour_node_map;
 
 public:
 	Graph(int V, int E, char* filename);  // Constructor
@@ -99,12 +96,9 @@ void Graph::buildCSRGraph(char filename[])
 	unsigned int s, d;
 	std::ifstream infile(filename);
 	/*ifstream file;
-	file.open(filename);
 	if (!file.is_open())
 	{
 	printf("Could not open file");
-	//cerr << "Error: " << strerror_s();
-
 	return;
 	}*/
 
@@ -124,7 +118,7 @@ void Graph::buildCSRGraph(char filename[])
 		prev = s;
 	}
 
-	//file.close();
+	infile.close();
 	int i;
 	/*for (i = 0; i<V; i++)
 	printf("Nodes[%d] = %d\n", i, nodes[i]);
@@ -137,7 +131,7 @@ void Graph::buildCSRGraph(char filename[])
 
 void Graph::buildCSRInverseGraph(char filename[])
 {
-	printf("Building Inverse CSR...\n");
+	printf("\nBuilding Inverse CSR...\n");
 	int l = strlen(filename);
 	printf("Length of filename is: %d\n",l);
 	char *inverseFilename = (char *)malloc(l*sizeof(char));
@@ -155,10 +149,8 @@ void Graph::buildCSRInverseGraph(char filename[])
 	file.open(filename);
 	if (!file.is_open())
 	{
-	printf("Could not open file");
-	//cerr << "Error: " << strerror_s();
-
-	return;
+		printf("Could not open file");
+		return;
 	}
 	
 	int prev = -1;
@@ -177,7 +169,8 @@ void Graph::buildCSRInverseGraph(char filename[])
 		prev = s;
 	}
 
-	//file.close();
+	infile.close();
+
 	/*for (i = 0; i<V; i++)
 	printf("Nodes[%d] = %d\n", i, nodes[i]);
 	printf("\nEdges   ");
@@ -419,14 +412,14 @@ void Graph::Trim1()
 				colour[i] = maxColour;
 			}
 		}
-		printf("\n\n\n Done with a round of trimming \n\n\n");
+		//printf("\n\n\n Done with a round of trimming \n\n\n");
 	} while (change);
 	printf("MaxColor is %d", maxColour);
 }
 
 void Graph::Trim2()
 {
-	printf("Trim2...\n");
+	printf("\nTrim2...\n");
 	int i, j;
 	for (i = 0; i<V; i++)
 	{
@@ -519,7 +512,7 @@ void Graph::repeated_FWBW(){
 
 void Graph::FWBW_with_queue(int g_colour)
 {
-	printf("FWBW with Queue...\n");
+	printf("\nFWBW with Queue...\n");
 	list<int> queue;
 	int *visited1;
 	visited1 = (int *)calloc(V, sizeof(int));
@@ -540,7 +533,6 @@ void Graph::FWBW_with_queue(int g_colour)
 
 	while (!queue.empty())
 	{
-		//printf("\n FW FW FW FW!");
 		curr = (int)queue.front();
 		visited1[curr] = 1;
 		queue.pop_front();
@@ -575,7 +567,6 @@ void Graph::FWBW_with_queue(int g_colour)
 
 	while (!queue.empty())
 	{
-		//printf("\ BW BW BW BW BW!");
 		curr = (int)queue.front();
 		visited2[curr] = 1;
 		queue.pop_front();

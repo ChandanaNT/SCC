@@ -702,7 +702,7 @@ void Graph::SCC()
 int main(int argc, char* argv[])
 {
 	//Data Filename
-	char filename[] = "./sortedDummyDataSorted.txt";
+	char filename[] = "./wiki-Vote_Sorted.txt";
 	//Number of vertices
 	int V = 73; //15;
 	//Number of Edges

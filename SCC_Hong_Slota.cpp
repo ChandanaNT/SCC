@@ -449,7 +449,7 @@ void Graph::Trim2()
 
 void Graph::DFS(int index, int * visited, int c, int old_colour)
 {
-	printf("DFS: Processing node: %d in colour group: %d\n", index, old_colour);
+	//printf("DFS: Processing node: %d in colour group: %d\n", index, old_colour);
 	int i;
 	visited[index] = 1;
 	colour[index] = c;
@@ -463,7 +463,11 @@ void Graph::DFS(int index, int * visited, int c, int old_colour)
 	for (i = min_ind; i < max_ind; i++)
 	{
 		if (visited[i] == 0 && marked[i] == 0 && colour[i] == old_colour)
+		{
+			visited[i] = 1;
+			colour[i] = c;
 			DFS(edges[i], visited, c, old_colour);
+		}
 	}
 }
 	
@@ -475,7 +479,11 @@ void Graph::DFS(int index, int * visited, int c, int old_colour)
 		for (i = min_ind; i < max_ind; i++)
 		{
 			if (visited[i] == 0 && marked[i] == 0 && colour[i] == old_colour)
+			{   
+				visited[i] = 1;
+			    colour[i] = c;
 				DFS(edges[i], visited, c, old_colour);
+			}
 		}
 	}
 
@@ -497,8 +505,7 @@ void Graph::WCC()
 			work_queue.push(maxColour);
 		}		
 	}
-	buildColourMap();
-	printColourMap();
+	
 	printf("\nWCC Done...\n");
 }
 
@@ -654,7 +661,7 @@ void Graph::printInfo()
 	}
 	printf("\nNumber of marked nodes are %d", marked_count);
 
-	for (i = 0; i < maxColour; ++i)
+	for (i = 0; i <= maxColour; ++i)
 	{
 		printf("\nNodes belonging to colour %d are  ", i);
 		for (j = 0; j < V; j++)
@@ -695,6 +702,8 @@ void Graph::SCC()
 
 	WCC();
 	repeated_FWBW();
+	buildColourMap();
+	printColourMap();
 	//printInfo();
 }
 
@@ -702,11 +711,11 @@ void Graph::SCC()
 int main(int argc, char* argv[])
 {
 	//Data Filename
-	char filename[] = "C:\\Users\\Asavari\\Desktop\\sortedDummyData.txt";
+	char filename[] = "./sortedDummyDataSorted.txt";
 	//Number of vertices
-	int V = 6;//73;
+	int V = 73; //15;
 	//Number of Edges
-	int E = 7;//100;
+	int E = 100; //28; 
 	Graph g(V, E, filename);
 	g.SCC();
 	return 0;

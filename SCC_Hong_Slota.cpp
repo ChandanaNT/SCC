@@ -6,7 +6,12 @@
 #include <list>
 #include <fstream>
 #include <set>
+#include <map>
+#include <vector>
+#include <iterator>
 #include <list> 
+#include <queue>
+//#include <hashmap>
 #include <stdlib.h>
 
 using namespace std;
@@ -25,8 +30,12 @@ class Graph
 	int* nodes;
 	int* colour;
 	int* marked;
-	
-	list<int> work_queue;
+	int* inverted_edges;
+	int* inverted_nodes;
+
+	queue<int> work_queue;
+	map <int, std::vector<int> > colourMap;
+	//hashmap<> colour_node_map;
 
 public:
 	Graph(int V, int E, char* filename);  // Constructor
@@ -34,10 +43,16 @@ public:
 	{
 		free(edges);
 		free(nodes);
+		free(inverted_edges);
+		free(inverted_nodes);
 		free(colour);
 		free(marked);
 	}
+	void DFS(int index, int * visited, int colour, int old_colour);
 	void buildCSRGraph(char filename[]); //Create Graph
+	void buildCSRInverseGraph(char filename[]); //Creates Inverse Graph
+	void buildColourMap();
+	void printColourMap();
 	void printInfo();
 
 	int choosePivot(int, int*);
@@ -49,6 +64,8 @@ public:
 	void Trim2(); //Remove the 2-SCCs
 	void FWBW(int); //Find the SCC
 	void WCC(); //Find the individual weakly connected components and add it to the queue
+	void repeated_FWBW();
+	void FWBW_with_queue(int pivot);
 
 	void SCC(); //Print the SCCs
 };
@@ -59,15 +76,20 @@ Graph::Graph(int V, int E, char filename[])
 	this->E = E;
 	this->maxColour = 0;
 	this->nodes = (int *)malloc(sizeof(int)*V);
-	this->colour = (int *)calloc(V,sizeof(int));
-	this->marked = (int *)calloc(V,sizeof(int));
+	this->colour = (int *)calloc(V, sizeof(int));
+	this->marked = (int *)calloc(V, sizeof(int));
 	this->edges = (int *)malloc(sizeof(int)*E);
+	this->inverted_edges = (int *)malloc(sizeof(int)*E);
+	this->inverted_nodes = (int *)malloc(sizeof(int)*V);
 	int i;
 	for (i = 0; i<V; i++)
 	{
 		this->nodes[i] = -1;
+		this->inverted_nodes[i] = -1;
 	}
 	buildCSRGraph(filename);
+	buildCSRInverseGraph(filename);
+	printInfo();
 }
 
 void Graph::buildCSRGraph(char filename[])
@@ -80,12 +102,12 @@ void Graph::buildCSRGraph(char filename[])
 	file.open(filename);
 	if (!file.is_open())
 	{
-		printf("Could not open file");
-		//cerr << "Error: " << strerror_s();
+	printf("Could not open file");
+	//cerr << "Error: " << strerror_s();
 
-		return;
+	return;
 	}*/
-	
+
 	int prev = -1;
 	int count_edges = 0;
 
@@ -101,16 +123,82 @@ void Graph::buildCSRGraph(char filename[])
 		count++;
 		prev = s;
 	}
-	
+
 	//file.close();
 	int i;
 	/*for (i = 0; i<V; i++)
-		printf("Nodes[%d] = %d\n", i, nodes[i]);
+	printf("Nodes[%d] = %d\n", i, nodes[i]);
 	printf("\nEdges   ");
 	for (i = 0; i<E; i++)
-		printf("%d ", edges[i]);
+	printf("%d ", edges[i]);
 	printf("\n");*/
-	printf("\nDone building CSR !");
+	printf("\nDone building CSR!\n");
+}
+
+void Graph::buildCSRInverseGraph(char filename[])
+{
+	printf("Building Inverse CSR...\n");
+	int l = strlen(filename);
+	printf("Length of filename is: %d\n",l);
+	char *inverseFilename = (char *)malloc(l*sizeof(char));
+	int i;
+	char copytext[] = "_inv.txt";
+	for (i = 0; i < l; i++)
+		inverseFilename[i] = filename[i];
+	for (i = 0; i <= 8; i++)
+		inverseFilename[i + l - 4] = copytext[i];
+	printf("File to be opened is:||%s||", inverseFilename);
+	int count = 0;
+	unsigned int s, d;
+	std::ifstream infile(inverseFilename); 
+	ifstream file;
+	file.open(filename);
+	if (!file.is_open())
+	{
+	printf("Could not open file");
+	//cerr << "Error: " << strerror_s();
+
+	return;
+	}
+	
+	int prev = -1;
+	int count_edges = 0;
+
+	while (infile >> s >> d)
+	{
+		count_edges++;
+		//printf("%d, %d\n",s, d);
+		if (prev == -1 || s != prev)
+		{
+			inverted_nodes[s] = count;
+		}
+		inverted_edges[count] = d;
+		count++;
+		prev = s;
+	}
+
+	//file.close();
+	/*for (i = 0; i<V; i++)
+	printf("Nodes[%d] = %d\n", i, nodes[i]);
+	printf("\nEdges   ");
+	for (i = 0; i<E; i++)
+	printf("%d ", edges[i]);
+	printf("\n");*/
+	printf("\nDone building Inversted CSR!\n");
+}
+
+void Graph::buildColourMap()
+{
+	int i;
+	for (i = 0; i < maxColour; i++)
+	{
+		vector<int> nodeList;
+		colourMap.insert(pair <int, std::vector<int> >(i, nodeList));
+	}
+	for (i = 0; i < V; i++)
+	{
+		colourMap[colour[i]].push_back(i);
+	}
 }
 
 int Graph::checkIndegree(int i)
@@ -185,7 +273,7 @@ void Graph::FWBW(int g_colour)
 	printf("FWBW...\n");
 	list<int> queue;
 	int *visited1;
-	visited1 =(int *)calloc(V,sizeof(int));
+	visited1 = (int *)calloc(V, sizeof(int));
 	int fw_c = maxColour + 1, bw_c = maxColour + 2, scc_c = maxColour + 3;
 	maxColour += 3;
 	printf("Colours used: FW:%d BW:%d SCC:%d\n", fw_c, bw_c, scc_c);
@@ -194,6 +282,7 @@ void Graph::FWBW(int g_colour)
 	if (pivot == -1)
 	{
 		printf("Pivot was not chosen for colour: %d\n", colour);
+		return ;
 	}
 	//printf("\nChosen Pivot is %d, of colour: %d\n", pivot, colour[pivot]);
 	queue.push_back(pivot);
@@ -221,10 +310,13 @@ void Graph::FWBW(int g_colour)
 		//printf("Iterate from %d to %d for node %d\n", start, end, curr);
 		for (i = start; i<end; i++)
 		{
-			if (colour[edges[i]] == original_c)
+			if (colour[edges[i]] == original_c && marked[edges[i]] == 0)
 			{
 				if (!visited1[edges[i]])
+				{
+					visited1[edges[i]] = 1;
 					queue.push_back(edges[i]);
+				}
 				//printf("Pushed: %d\n", edges[i]);
 			}
 		}
@@ -253,12 +345,13 @@ void Graph::FWBW(int g_colour)
 					ind = k;
 				}
 				if (ind == -1) continue;
-				if (visited2[ind] == 1) continue;
+				if (visited2[ind] == 1 || marked[ind] == 1) continue;
 				//printf("\nExploring edge %d--->%d\n", ind, curr);
 				//if (marked[ind]) continue;
 				if (colour[ind] == original_c)
 				{
 					colour[ind] = bw_c;
+					visited2[ind] = 1;
 					queue.push_back(ind);
 					//printf("Pushed into BW set: %d\n", ind);
 				}
@@ -266,6 +359,7 @@ void Graph::FWBW(int g_colour)
 				{
 					colour[ind] = scc_c;
 					marked[ind] = 1;
+					visited2[ind] = 1;
 					queue.push_back(ind);
 					//printf("Pushed into SCC set: %d\n", ind);
 				}
@@ -293,6 +387,7 @@ int Graph::choosePivot(int c, int *pivot)
 			return i;
 		}
 	}
+	*pivot = -1;
 	return -1;
 }
 
@@ -305,7 +400,7 @@ void Graph::Trim1()
 		change = 0;
 		for (i = 0; i<V; i++)
 		{
-			printf("\n Processing Node %d",i);
+			//printf("\n Processing Node %d", i);
 			if (checkOutdegree(i) == 0)
 			{
 				//printf("\nOutdegree is zero for %d\n",i);
@@ -352,38 +447,254 @@ void Graph::Trim2()
 	}
 }
 
+void Graph::DFS(int index, int * visited, int c, int old_colour)
+{
+	printf("DFS: Processing node: %d in colour group: %d\n", index, old_colour);
+	int i;
+	visited[index] = 1;
+	colour[index] = c;
+	int min_ind, max_ind;
+	if (nodes[index] != -1)
+	{
+	min_ind = nodes[index];
+
+	if (index + 1 == V) max_ind = E;
+	else max_ind = nodes[index + 1];
+	for (i = min_ind; i < max_ind; i++)
+	{
+		if (visited[i] == 0 && marked[i] == 0 && colour[i] == old_colour)
+			DFS(edges[i], visited, c, old_colour);
+	}
+}
+	
+	if (inverted_nodes[index] != -1){
+		min_ind = inverted_nodes[index];
+		if (index + 1 == V) max_ind = E;
+		else max_ind = inverted_nodes[index + 1];
+
+		for (i = min_ind; i < max_ind; i++)
+		{
+			if (visited[i] == 0 && marked[i] == 0 && colour[i] == old_colour)
+				DFS(edges[i], visited, c, old_colour);
+		}
+	}
+
+}
+
 void Graph::WCC()
 {
-	printf("WCC...\n");
+	printf("\nWCC...\n");
+	int *visited = (int *)calloc(V,sizeof(int));
+	int i;
+	for (i = 0; i < V;i++)
+	if (marked[i] == 0)
+	{
+		if (visited[i] == 0)
+		{
+			printf("Performing DFS from node: %d\n\n",i);
+			maxColour++;
+			Graph::DFS(i, visited, maxColour, colour[i]);
+			work_queue.push(maxColour);
+		}		
+	}
+	buildColourMap();
+	printColourMap();
+	printf("\nWCC Done...\n");
+}
+
+void Graph::repeated_FWBW(){
+	while (!work_queue.empty()){
+		int q = (int)work_queue.front();
+		work_queue.pop();
+		FWBW_with_queue(q);
+	}
+}
+
+void Graph::FWBW_with_queue(int g_colour)
+{
+	printf("FWBW with Queue...\n");
+	list<int> queue;
+	int *visited1;
+	visited1 = (int *)calloc(V, sizeof(int));
+	int fw_c = maxColour + 1, bw_c = maxColour + 2, scc_c = maxColour + 3;
+	maxColour += 3;
+	printf("Colours used: FW:%d BW:%d SCC:%d\n", fw_c, bw_c, scc_c);
+	int pivot = 0, i, j;
+	choosePivot(g_colour, &pivot);
+	if (pivot == -1)
+	{
+		printf("Pivot was not chosen for colour: %d\n", g_colour);
+		return;
+	}
+	//printf("\nChosen Pivot is %d, of colour: %d\n", pivot, colour[pivot]);
+	queue.push_back(pivot);
+	int curr;
+	int original_c = colour[pivot];
+
+	while (!queue.empty())
+	{
+		//printf("\n FW FW FW FW!");
+		curr = (int)queue.front();
+		visited1[curr] = 1;
+		queue.pop_front();
+
+		colour[curr] = fw_c;
+		int end, start = nodes[curr];
+		int end_ind = curr + 1;
+		//printf("\n%d %d", start,end_ind);
+		while (end_ind < V){
+			if (nodes[end_ind] == -1)
+				end_ind++;
+			else break;
+		}
+		//printf("\nEnd ind = %d\n",end_ind);
+		if (end_ind == V) end = E;
+		else end = nodes[end_ind];
+		//printf("Iterate from %d to %d for node %d\n", start, end, curr);
+		for (i = start; i<end; i++)
+		{
+			if (colour[edges[i]] == original_c && marked[i] == 0)
+			{
+				if (!visited1[edges[i]])
+					queue.push_back(edges[i]);
+				//printf("Pushed: %d\n", edges[i]);
+			}
+		}
+	}
+	//BW
+	int *visited2;
+	visited2 = (int *)calloc(V, sizeof(int));
+	queue.push_back(pivot);
+
+	while (!queue.empty())
+	{
+		//printf("\ BW BW BW BW BW!");
+		curr = (int)queue.front();
+		visited2[curr] = 1;
+		queue.pop_front();
+		
+		//if (colour[curr] == fw_c)
+			//colour[curr] == scc_c;
+		int end, start = inverted_nodes[curr];
+		int end_ind = curr + 1;
+		//printf("\n%d %d", start,end_ind);
+		while (end_ind < V){
+			if (inverted_nodes[end_ind] == -1)
+				end_ind++;
+			else break;
+		}
+		//printf("\nEnd ind = %d\n",end_ind);
+		if (end_ind == V) end = E;
+		else end = inverted_nodes[end_ind];
+		//printf("Iterate from %d to %d for node %d\n", start, end, curr);
+		for (i = start; i<end; i++)
+		{
+			int v = inverted_edges[i];
+			if (visited2[v] == 0 && marked[v] == 0)
+			{
+				if (colour[v] == original_c)
+				{
+					colour[v] = bw_c;
+					visited2[v] = 1;
+					queue.push_back(v);
+					//printf("Pushed into BW set: %d\n", ind);
+				}
+				else if (colour[v] == fw_c)
+				{
+					colour[v] = scc_c;
+					marked[v] = 1;
+					visited2[v] = 1;
+					queue.push_back(v);
+					//printf("Pushed into SCC set: %d\n", ind);
+				}
+			}
+		}
+	}
+
+	for (i = 0; i<V; i++)
+		if (colour[i] == scc_c)
+			marked[i] = 1;
+
+	colour[pivot] = scc_c;
+	marked[pivot] = 1;
+
+	work_queue.push(bw_c);
+	work_queue.push(fw_c);
+
 }
 
 void Graph::printInfo()
 {
-	int i;
+	int i, j;
+	int marked_count = 0;
+
+	//To print nodes and edges arrays
 	for (i = 0; i<V; i++)
 		printf("\nNodes[%d] = %d", i, nodes[i]);
 	printf("\nEdges:");
 	for (i = 0; i<E; i++)
 		printf("%d ", edges[i]);
 	printf("\n");
+
+
+
+	for (i = 0; i<V; i++)
+		printf("\ninverted_Nodes[%d] = %d", i, inverted_nodes[i]);
+	printf("\nInverted_Edges:");
+	for (i = 0; i<E; i++)
+		printf("%d ", inverted_edges[i]);
+	printf("\n");
+
 	for (i = 0; i<V; i++)
 	{
 		printf("[%d]   Marked:%d   Colour:%d\n", i, marked[i], colour[i]);
+		if (marked[i])
+			marked_count++;
+
+	}
+	printf("\nNumber of marked nodes are %d", marked_count);
+
+	for (i = 0; i < maxColour; ++i)
+	{
+		printf("\nNodes belonging to colour %d are  ", i);
+		for (j = 0; j < V; j++)
+		{
+			if (colour[j] == i)
+				printf("%d ", j);
+
+		}
 	}
 	printf("\n");
+}
+
+void Graph::printColourMap()
+{
+	map <int, std::vector<int> > ::iterator itr;
+	vector<int>::iterator jtr;
+	cout << "\nThe hash map is \n";
+	for (itr = colourMap.begin(); itr != colourMap.end(); ++itr)
+	{
+		cout << '\t' << itr->first << '\t';
+		for (jtr = itr->second.begin(); jtr != itr->second.end(); jtr++)
+		{
+			cout << *jtr << " ";
+		}
+		cout << "\n";
+	}
 }
 
 void Graph::SCC()
 {
 	Trim1();
-	//printInfo();
 	FWBW(0);
+	printInfo();
 
 	Trim1();
 	Trim2();
 	Trim1();
 
 	WCC();
+	repeated_FWBW();
 	//printInfo();
 }
 
@@ -391,11 +702,11 @@ void Graph::SCC()
 int main(int argc, char* argv[])
 {
 	//Data Filename
-	char filename[] = "./sortedOnFromRoadNetwork.txt";
+	char filename[] = "C:\\Users\\Asavari\\Desktop\\sortedDummyData.txt";
 	//Number of vertices
-	int V = 1393383; //8;
+	int V = 6;//73;
 	//Number of Edges
-	int E = 3843320; //9; 
+	int E = 7;//100;
 	Graph g(V, E, filename);
 	g.SCC();
 	return 0;

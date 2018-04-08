@@ -9,10 +9,11 @@
 #include <iterator>
 #include <list> 
 #include <queue>
-//#include <hashmap>
+#include <chrono>
 #include <stdlib.h>
 
 using namespace std;
+using namespace std::chrono;
 
 // This class represents a directed graph using
 // compressed sparse row representation
@@ -693,14 +694,17 @@ void Graph::findBiggestSCC()
 		if(max_size < size)
 		   max_size = size;		
 	}
-	printf("\nSize of the biggest SCC is %d \n\n", max_size);
+	printf("\nSize of the biggest SCC is %d ", max_size);
 }
 
 void Graph::SCC()
 {
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    //Hong Algorithm to find SCCs
 	Trim1();
 	FWBW(0);
-	printInfo();
+	//printInfo();
 
 	Trim1();
 	Trim2();
@@ -708,21 +712,30 @@ void Graph::SCC()
 
 	WCC();
 	repeated_FWBW();
+
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+    double duration = duration_cast<microseconds>( t2 - t1 ).count();
+
+
 	buildColourMap();
 	printColourMap();
 	findBiggestSCC();
 	//printInfo();
+    
+    printf("\nExecution time of SCC algorithm : %lf microseconds \n", duration);
+         	
 }
 
 
 int main(int argc, char* argv[])
 {
 	//Data Filename
-	char filename[] = "./wiki-Vote_Sorted.txt";
+	char filename[] = "./smallDummyDataSorted.txt";
 	//Number of vertices
-	int V = 8297; //15;  //73; 
+	int V = 15; //8297;  //73; 
 	//Number of Edges
-	int E = 103689; //28;  //100; 
+	int E = 28; //103689;  //100; 
 	Graph g(V, E, filename);
 	g.SCC();
 	return 0;

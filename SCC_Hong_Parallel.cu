@@ -163,38 +163,6 @@ __device__ int Graph::checkOutdegree(int i)
 	return validOutEdges;
 }
 
-/*__device__ void Graph::Trim1()
-{
-	printf("\nTrim1...\n");
-	int i, j, k;
-	int change;
-	do{
-		change = 0;
-		for (i = 0; i<V; i++)
-		{
-			//printf("\n Processing Node %d", i);
-			if (checkOutdegree(i) == 0)
-			{
-				//printf("\nOutdegree is zero for %d\n",i);
-				marked[i] = 1;
-				change = 1;
-				maxColour++;
-				colour[i] = maxColour;
-				continue;
-			}
-			else if (checkIndegree(i) == 0)
-			{
-				//printf("\nIndegree is zero for %d\n",i);
-				marked[i] = 1;
-				change = 1;
-				maxColour++;
-				colour[i] = maxColour;
-			}
-		}
-		//printf("\n\n\n Done with a round of trimming \n\n\n");
-	} while (change);
-	printf("\nMaxColor is %d", maxColour);
-}*/
 
 __global__ void Trim1(Graph* d_g)
 {
@@ -225,11 +193,14 @@ __global__ void Trim1(Graph* d_g)
 void SCC(Graph* d_g)
 {
 	//Trim 1
-	int threads, blocks;
+	int threads, blocks ;
 	threads = 1024;
 	blocks = V/threads + 1;
+	
 	Trim1<<<blocks, threads >>>(d_g);
-    cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
+
+	//Trim 2
 }
 
 int main(int argc, char* argv[])

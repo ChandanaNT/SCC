@@ -45,8 +45,8 @@ class Graph
 	__device__ void printInfo();
 	__device__ int checkIndegree(int);
 	__device__ int checkOutdegree(int);
-	
-	//__device__ void Trim1(); //Remove the 1-SCCs
+	__device__ 	int isEdge(int, int);
+
 	
 };
 
@@ -190,17 +190,70 @@ __global__ void Trim1(Graph* d_g)
    
 }
 
+__device__ int Graph::isEdge(int i, int j)
+{
+	if (i == j) return 0;
+	int k, h;
+	if (nodes[i] == -1) return 0;
+	k = i + 1;
+	while (k<V)
+	{
+		if (nodes[k] != -1)
+			break;
+		k++;
+	}
+	for (h = nodes[i]; h<nodes[k]; h++)
+	{
+		if (edges[h] == j)
+			return 1;
+	}
+	return 0;
+}
+
+__global__ void Trim2(Graph* d_g)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if(i >= d_g->V )
+	   return;
+
+    int j;
+	for (j = 0; j<d_g->V; j++)
+	{
+		if (d_g->marked[i] || d_g->marked[j]) continue;
+		if (d_g->isEdge(i, j) && d_g->isEdge(j, i))
+		{
+
+			if ((d_g->checkIndegree(i) == 1 && d_g->checkIndegree(j) == 1) || (d_g->checkOutdegree(i) == 1 && d_g->checkOutdegree(j) == 1))
+			{
+				d_g->marked[i] = d_g->marked[j] = 1;
+				d_g->maxColour++;
+				d_g->colour[i] = d_g->colour[j] = d_g->maxColour;
+			}
+		}
+	}
+}
+
 void SCC(Graph* d_g)
 {
-	//Trim 1
 	int threads, blocks ;
+	
+	//Trim 1
 	threads = 1024;
 	blocks = V/threads + 1;
 	
+	printf("\nTrim1 ....");
 	Trim1<<<blocks, threads >>>(d_g);
 	cudaDeviceSynchronize();
+	printf("\nDone with Trim1 ....");
 
 	//Trim 2
+	printf("\nTrim2 ....");
+	Trim2<<<blocks, threads >>>(d_g);
+	cudaDeviceSynchronize();
+	printf("\nDone with Trim2 ....");
+
+
 }
 
 int main(int argc, char* argv[])
@@ -230,6 +283,6 @@ int main(int argc, char* argv[])
 	cudaMemcpy(&(d_g->colour), &h_colour, sizeof(int *), cudaMemcpyHostToDevice);
 
 	SCC(d_g);
-	
+	printf("\n");
 	return 0;
 }

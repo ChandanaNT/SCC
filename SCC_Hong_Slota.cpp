@@ -714,17 +714,14 @@ void Graph::SCC()
 	repeated_FWBW();
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
-
     double duration = duration_cast<microseconds>( t2 - t1 ).count();
-
 
 	buildColourMap();
 	printColourMap();
 	findBiggestSCC();
 	//printInfo();
     
-    printf("\nExecution time of SCC algorithm : %lf microseconds \n", duration);
-         	
+    printf("\nExecution time of SCC algorithm : %lf microseconds \n", duration);      	
 }
 
 

@@ -31,7 +31,8 @@ class Graph
 	int* nodes;
 	int* colour;
 	int* marked;
-	
+
+
 	Graph(char* filename, int V, int E);  // Constructor
 	~Graph()    //Destructor
 	{
@@ -234,14 +235,65 @@ __global__ void Trim2(Graph* d_g)
 	}
 }
 
+void ColourMapFunction(int *colours, int mc)
+{
+	int i;
+	map <int, std::vector<int> > colourMap;
+
+    printf("\nBuilding the Colour Hash Map");
+	for (i = 0; i < mc; i++)
+	{
+		vector<int> nodeList;
+		colourMap.insert(pair <int, std::vector<int> >(i, nodeList));
+	}
+	for (i = 0; i < V; i++)
+	{
+		colourMap[colours[i]].push_back(i);
+	}
+
+    
+	map <int, std::vector<int> > ::iterator itr;
+	vector<int>::iterator jtr;
+	printf("\nThe Colour Hash Map is as follows \n");
+	for (itr = colourMap.begin(); itr != colourMap.end(); ++itr)
+	{
+		cout << '\t' << itr->first << '\t';
+		for (jtr = itr->second.begin(); jtr != itr->second.end(); jtr++)
+		{
+			cout << *jtr << " ";
+		}
+		cout << "\n";
+	}
+
+    printf("\nFinding the biggest SCC in the graph");
+    int max_size = -1, size;
+	for (itr = colourMap.begin(); itr != colourMap.end(); ++itr)
+	{
+		size = itr->second.size();
+		if(max_size < size)
+		   max_size = size;		
+	}
+	printf("\nSize of the biggest SCC is %d ", max_size);
+
+}
+
 void SCC(Graph* d_g)
 {
 	int threads, blocks ;
 	
-	//Trim 1
 	threads = 1024;
 	blocks = V/threads + 1;
 	
+	//Trim 1
+	printf("\nTrim1 ....");
+	Trim1<<<blocks, threads >>>(d_g);
+	cudaDeviceSynchronize();
+	printf("\nDone with Trim1 ....");
+
+    //buildColourMap<<<1,1>>>(d_g);
+    //FWBW
+
+	/*//Trim 1
 	printf("\nTrim1 ....");
 	Trim1<<<blocks, threads >>>(d_g);
 	cudaDeviceSynchronize();
@@ -253,7 +305,18 @@ void SCC(Graph* d_g)
 	cudaDeviceSynchronize();
 	printf("\nDone with Trim2 ....");
 
+	//Trim 1
+	printf("\nTrim1 ....");
+	Trim1<<<blocks, threads >>>(d_g);
+	cudaDeviceSynchronize();
+	printf("\nDone with Trim1 ....");*/
 
+	
+	//WCC
+
+	//repeated_FWBW();
+
+	return;
 }
 
 int main(int argc, char* argv[])
@@ -262,8 +325,9 @@ int main(int argc, char* argv[])
 	char filename[] = "./smallDummyDataSorted.txt";
 
 	Graph h_g(filename, V, E);
-
 	Graph *d_g;
+
+	//Copy data from host to device
 	cudaMalloc((void **)&d_g, sizeof(Graph));
 	cudaMemcpy(d_g, &h_g, sizeof(Graph), cudaMemcpyHostToDevice);
 
@@ -282,7 +346,37 @@ int main(int argc, char* argv[])
 	cudaMemcpy(&(d_g->marked), &h_marked, sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(&(d_g->colour), &h_colour, sizeof(int *), cudaMemcpyHostToDevice);
 
+    //Find SCCs in the graph
 	SCC(d_g);
+  
+	//Copy data from device to host
+	int *h_colour_ret, *h_nodes_ret, *h_marked_ret, *h_edges_ret;
+	h_colour_ret = (int*)malloc(sizeof(int)*V);
+	h_nodes_ret = (int*)malloc(sizeof(int)*V);
+	h_marked_ret = (int*)malloc(sizeof(int)*V);
+	h_edges_ret = (int*)malloc(sizeof(int)*E);
+	cudaMemcpy(&h_g, d_g,sizeof(Graph),cudaMemcpyDeviceToHost); 
+	//cudaMemcpy(&(h_g.colour), &(d_g->colour), sizeof(int*), cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_colour_ret, h_g.colour, sizeof(int)*V, cudaMemcpyDeviceToHost );
+	cudaMemcpy(h_marked_ret, h_g.marked, sizeof(int)*V, cudaMemcpyDeviceToHost );
+	cudaMemcpy(h_nodes_ret, h_g.nodes, sizeof(int)*V, cudaMemcpyDeviceToHost );
+	cudaMemcpy(h_edges_ret, h_g.edges, sizeof(int)*E, cudaMemcpyDeviceToHost );
+	
+	//Build colour map, print it and find the size of the largest SCC
+	ColourMapFunction(h_colour_ret, h_g.maxColour);
+
+	cudaFree(d_g);
+	cudaFree(h_edges);
+	cudaFree(h_nodes);
+	cudaFree(h_marked);
+	cudaFree(h_colour);
+
+	free(h_colour_ret);
+	free(h_marked_ret);
+	free(h_nodes_ret);
+	free(h_edges_ret);
+	cudaDeviceReset();
+
 	printf("\n");
 	return 0;
 }

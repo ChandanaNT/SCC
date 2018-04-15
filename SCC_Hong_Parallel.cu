@@ -279,6 +279,8 @@ void ColourMapFunction(int *colours, int mc)
 
 void SCC(Graph* d_g)
 {
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 	int threads, blocks ;
 	
 	threads = 1024;
@@ -316,6 +318,10 @@ void SCC(Graph* d_g)
 
 	//repeated_FWBW();
 
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    double duration = duration_cast<microseconds>( t2 - t1 ).count();
+	printf("\nExecution time of SCC algorithm : %lf microseconds \n", duration);
+	
 	return;
 }
 

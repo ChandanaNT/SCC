@@ -31,6 +31,8 @@ class Graph
 	int* nodes;
 	int* colour;
 	int* marked;
+	int* inverted_edges;
+	int* inverted_nodes;
 
 
 	Graph(char* filename, int V, int E);  // Constructor
@@ -40,9 +42,12 @@ class Graph
 		free(nodes);
 		free(marked);
 		free(colour);
+		free(inverted_edges);
+		free(inverted_nodes);
 	}
 	
 	void buildCSRGraph(char filename[]); //Create Graph
+	void buildCSRInverseGraph(char filename[]);
 	__device__ void printInfo();
 	__device__ int checkIndegree(int);
 	__device__ int checkOutdegree(int);
@@ -60,13 +65,17 @@ Graph::Graph(char filename[], int V, int E)
 	this->colour = (int *)calloc(V, sizeof(int));
 	this->marked = (int *)calloc(V, sizeof(int));
 	this->edges = (int *)malloc(sizeof(int)*E);
+	this->inverted_edges = (int *)malloc(sizeof(int)*E);
+	this->inverted_nodes = (int *)malloc(sizeof(int)*V);
 	
 	int i;
 	for (i = 0; i<V; i++)
 	{
 		this->nodes[i] = -1;
+		this->inverted_nodes[i] = -1;
 	}
 	buildCSRGraph(filename);
+	buildCSRInverseGraph(filename);
 	
 }
 
@@ -104,6 +113,60 @@ void Graph::buildCSRGraph(char filename[])
 	printf("\nDone building CSR!\n");
 }
 
+void Graph::buildCSRInverseGraph(char filename[])
+{
+	printf("\nBuilding Inverse CSR...\n");
+	int l = strlen(filename);
+	printf("Length of filename is: %d\n",l);
+	char *inverseFilename = (char *)malloc(l*sizeof(char));
+	int i;
+	char copytext[] = "_inv.txt";
+	for (i = 0; i < l; i++)
+		inverseFilename[i] = filename[i];
+	for (i = 0; i <= 8; i++)
+		inverseFilename[i + l - 4] = copytext[i];
+	printf("File to be opened is:||%s||", inverseFilename);
+	int count = 0;
+	unsigned int s, d;
+	std::ifstream infile(inverseFilename); 
+	ifstream file;
+	file.open(filename);
+	if (!file.is_open())
+	{
+		printf("Could not open file");
+		return;
+	}
+	
+	int prev = -1;
+	int count_edges = 0;
+
+	while (infile >> s >> d)
+	{
+		count_edges++;
+		//printf("%d, %d\n",s, d);
+		if (prev == -1 || s != prev)
+		{
+			inverted_nodes[s] = count;
+		}
+		//printf("\n Inverted_Edges[%d] = %d", count, d);
+		inverted_edges[count] = d;
+		count++;
+		prev = s;
+	}
+
+	infile.close();
+
+	/*for (i = 0; i<V; i++)
+	printf("Nodes[%d] = %d\n", i, nodes[i]);
+	printf("\nEdges   ");
+	printf("\n FInal inverted Edges array is \n");
+	for (i = 0; i<E; i++)
+	printf("%d ", inverted_edges[i]);
+	printf("\n");*/
+	printf("\nDone building Inverted CSR!\n");
+}
+
+
 __device__ void Graph::printInfo()
 {
 	int i;
@@ -114,6 +177,14 @@ __device__ void Graph::printInfo()
 	printf("\nEdges:");
 	for (i = 0; i<E; i++)
 		printf("%d ", edges[i]);
+	printf("\n");
+
+    //To print Inverted nodes and edges arrays
+	for (i = 0; i<V; i++)
+		printf("\nInverted_Nodes[%d] = %d", i, inverted_nodes[i]);
+	printf("\nInverted_Edges:");
+	for (i = 0; i<E; i++)
+		printf("%d ", inverted_edges[i]);
 	printf("\n");
 }
 
@@ -211,6 +282,10 @@ __device__ int Graph::isEdge(int i, int j)
 	return 0;
 }
 
+__global__ void Checky(Graph* d_g)
+{
+	d_g->printInfo();
+}
 __global__ void Trim2(Graph* d_g)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -292,7 +367,9 @@ void SCC(Graph* d_g)
 	cudaDeviceSynchronize();
 	printf("\nDone with Trim1 ....");
 
-    //buildColourMap<<<1,1>>>(d_g);
+    //Checky<<<1, 1 >>>(d_g);
+	//cudaDeviceSynchronize();
+	
     //FWBW
 
 	/*//Trim 1
@@ -337,7 +414,7 @@ int main(int argc, char* argv[])
 	cudaMalloc((void **)&d_g, sizeof(Graph));
 	cudaMemcpy(d_g, &h_g, sizeof(Graph), cudaMemcpyHostToDevice);
 
-	int *h_edges, *h_nodes, *h_marked, *h_colour;
+	int *h_edges, *h_nodes, *h_marked, *h_colour, *h_inverted_nodes, *h_inverted_edges;
     cudaMalloc((void **)&h_edges, sizeof(int)*E);
 	cudaMemcpy(h_edges, h_g.edges, sizeof(int)*E, cudaMemcpyHostToDevice);
 	cudaMalloc((void **)&h_nodes, sizeof(int)*V);
@@ -346,11 +423,17 @@ int main(int argc, char* argv[])
 	cudaMemcpy(h_marked, h_g.marked, sizeof(int)*V, cudaMemcpyHostToDevice);
 	cudaMalloc((void **)&h_colour, sizeof(int)*V);
     cudaMemcpy(h_colour, h_g.colour, sizeof(int)*V, cudaMemcpyHostToDevice);
+	cudaMalloc((void **)&h_inverted_nodes, sizeof(int)*V);
+    cudaMemcpy(h_inverted_nodes, h_g.inverted_nodes, sizeof(int)*V, cudaMemcpyHostToDevice);
+	cudaMalloc((void **)&h_inverted_edges, sizeof(int)*E);
+	cudaMemcpy(h_inverted_edges, h_g.inverted_edges, sizeof(int)*E, cudaMemcpyHostToDevice);
     
 	cudaMemcpy(&(d_g->edges), &h_edges, sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(&(d_g->nodes), &h_nodes, sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(&(d_g->marked), &h_marked, sizeof(int *), cudaMemcpyHostToDevice);
 	cudaMemcpy(&(d_g->colour), &h_colour, sizeof(int *), cudaMemcpyHostToDevice);
+	cudaMemcpy(&(d_g->inverted_nodes), &h_inverted_nodes, sizeof(int *), cudaMemcpyHostToDevice);
+	cudaMemcpy(&(d_g->inverted_edges), &h_inverted_edges, sizeof(int *), cudaMemcpyHostToDevice);
 
     //Find SCCs in the graph
 	SCC(d_g);

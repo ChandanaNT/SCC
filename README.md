@@ -1,6 +1,6 @@
 # SCC
 
-A serial implementation of the **Hong Algorithm** that can be used to find Strongly Connected Components(SCCs) in directed graphs. The algorithm exploits special properties of real world graphs like the power law distribution of SCCs(the number of SCCs of a particular size is inversely proportional to the size) to speed up the process of finding SCCs in large real world graphs.
+A serial implementation of the **Hong Algorithm** that can be used to find Strongly Connected Components (SCCs) in directed graphs. The algorithm exploits special properties of real world graphs like the power law distribution of SCCs (the number of SCCs of a particular size is inversely proportional to the size) to speed up the process of finding SCCs in large real world graphs.
 
 #### Data Sets
 Data sets for large real world graphs can be obtained for free from [SNAP](http://snap.stanford.edu/index.html).

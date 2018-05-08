@@ -6,5 +6,6 @@ A serial implementation of the **Hong Algorithm** that can be used to find Stron
 Data sets for large real world graphs can be obtained for free from [SNAP](http://snap.stanford.edu/index.html).
 
 ### Research Papers
-[1] [On Fast Parallel Detection of Strongly Connected Components (SCC) in Small-World Graphs](https://ppl.stanford.edu/papers/sc13-hong.pdf) . 
+[1] [On Fast Parallel Detection of Strongly Connected Components (SCC) in Small-World Graphs](https://ppl.stanford.edu/papers/sc13-hong.pdf) 
+\newline
 [2] [GPU Centric Extensions for Parallel Strongly Connected Components Computation](https://dl.acm.org/citation.cfm?id=2884048)

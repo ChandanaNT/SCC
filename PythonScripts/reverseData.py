@@ -1,3 +1,5 @@
+#Script used to generate the inverse of the graph, given the input graph file with edges sorted by 1st vertex number
+
 filename = 'wiki-Vote_Sorted'
 with open(filename + '.txt') as f:
     lines = f.readlines()

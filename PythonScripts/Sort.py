@@ -1,3 +1,5 @@
+#Script used to sort the edges in the directed graph by 1st vertex(from vertex) number
+
 filename = 'wiki-Vote'
 with open(filename + '.txt') as f:
     lines = f.readlines()

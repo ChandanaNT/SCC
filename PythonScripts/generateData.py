@@ -1,3 +1,5 @@
+#Script used to generate dummy data
+
 import random
 
 filename = 'smallDummyData'
